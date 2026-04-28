@@ -45,6 +45,7 @@
 import cv2
 import random
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
@@ -65,6 +66,9 @@ FAKE_DIR.mkdir(parents=True, exist_ok=True)
 # en cualquier dispositivo (8.8.3 del documento)
 SEED = 42
 random.seed(SEED)
+
+swapper_path = os.path.expanduser("~/.insightface/models/inswapper_128.onnx")
+
 
 # =============================================================================
 # PASO 1 — Inicializar InsightFace con buffalo_l
@@ -99,11 +103,14 @@ app.prepare(ctx_id=0, det_size=(640, 640))
 # =============================================================================
 
 print("      Cargando inswapper_128.onnx...")
-swapper = insightface.model_zoo.get_model(
-    "inswapper_128.onnx",
-    download=True,
-    download_zip=True
-)
+if not os.path.exists(swapper_path):
+    print(f"ERROR: No se encuentra inswapper_128.onnx en {swapper_path}")
+    print("Descárgalo manualmente desde:")
+    print("https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx")
+    print(f"Y colócalo en: {swapper_path}")
+    exit(1)
+
+swapper = insightface.model_zoo.get_model(swapper_path)
 
 # =============================================================================
 # PASO 3 — Cargar lista de imágenes reales
