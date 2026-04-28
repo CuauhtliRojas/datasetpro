@@ -1,10 +1,13 @@
-# DeepShield — Dataset Construction Pipeline
+# Datasetpro — Contruccion de dataset
 
-**Paper:** _DeepShield: A Dual-Decoder Semantic Segmentation Software for Deepfake Face Detection
-and Digital Identity Protection_
-**Institution:** SEPI ESIME Culhuacán, IPN — Facultad de Ingeniería, UNAM
-**Authors:** Rodrigo Eduardo Arévalo-Ancona, Manuel Cedillo-Hernández, Francisco García-Ugalde
-**Year:** 2026
+**Proyecto:** _Detección y localización de manipulaciones
+faciales deepfakes mediante segmentaci´on
+semántica basada en redes neuronales
+convolucionales_
+**Intitucion:** SEPI ESIME Culhuacán, IPN —
+**Autores:** Castillo Delgado Ángel Ivan, Rojas Lozada Cuauhtli Emiliano
+**Asesores:** Dr. Manuel Cedillo Hern´andez Dr. Rodrigo Eduardo Ar´evalo Ancona
+**Año:** 2026
 
 ---
 
