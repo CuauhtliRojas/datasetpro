@@ -1,81 +1,67 @@
-# scripts/05_build_hdf5.py
+# scripts/05_assemble_dataset.py
 """
-Empaqueta el dataset final en un único archivo HDF5 con partición
-train/val/test (§8.8.3: 70/15/15 para suficiente variación en cada fase).
-Incluye imágenes reales (máscara todo-cero) y falsas (máscara generada).
-Justificación del formato: análisis forense offline con GPU dedicada (§8.11.1).
+Mueve las imágenes fake a Train_D/images/ y verifica
+que los tres directorios tienen exactamente el mismo
+número de archivos con los mismos nombres.
+
+Train_D/images/        ← imagen fake (entrada al modelo)
+Train_D/fake_mask/     ← ya generada por script 04
+Train_D/original_mask/ ← ya generada por script 04
+
+Requiere: CPU — ejecutar después del script 04
 """
-import h5py
-import numpy as np
-import cv2
+
+import shutil
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-import json
 
-REAL_DIR   = Path("data/raw/real")
-FAKE_SWAP  = Path("data/raw/fake_swap")
-FAKE_INP   = Path("data/raw/fake_inpaint")
-MASK_DIR   = Path("data/processed/masks")
-OUT_HDF5   = Path("data/processed/dataset.h5")
+# ── Rutas ─────────────────────────────────────────────────────────────────────
+FAKE_SRC   = Path("data/raw/fake_swap")
+IMAGES_DIR = Path("data/Train_D/images")
+FAKE_MASK  = Path("data/Train_D/fake_mask")
+ORIG_MASK  = Path("data/Train_D/original_mask")
 
-TARGET_SIZE = (256, 256)  # Divisible por 16 — requerimiento U-Net (§8.6.2)
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
-def load_img(path):
-    img = cv2.imread(str(path))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, TARGET_SIZE)
-    return img.astype(np.uint8)
+# ── Copiar imágenes fake a Train_D/images/ ────────────────────────────────────
+fake_files = sorted(FAKE_SRC.glob("*.png"))
+print(f"[1/3] Copiando {len(fake_files)} imágenes fake a Train_D/images/ ...")
 
-def load_mask(path):
-    if path is None or not path.exists():
-        return np.zeros(TARGET_SIZE, dtype=np.uint8)
-    mask = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
-    mask = cv2.resize(mask, TARGET_SIZE)
-    return (mask > 127).astype(np.uint8)  # Binario estricto (§8.5.4)
+for src in tqdm(fake_files, desc="Copiando"):
+    dst = IMAGES_DIR / src.name
+    if not dst.exists():
+        shutil.copy2(src, dst)
 
-# Construir lista de pares (imagen, máscara, label)
-samples = []
-for fake_dir in [FAKE_SWAP, FAKE_INP]:
-    for fake_path in fake_dir.glob("*.png"):
-        mask_path = MASK_DIR / fake_path.name
-        samples.append((fake_path, mask_path, 1))  # 1 = manipulada
+# ── Verificación de consistencia ──────────────────────────────────────────────
+print("\n[2/3] Verificando consistencia del dataset...")
 
-# Muestras reales con máscara todo-cero — balance de clases (§8.8.2)
-real_paths = list(REAL_DIR.glob("*.png"))[:len(samples)]
-for real_path in real_paths:
-    samples.append((real_path, None, 0))  # 0 = auténtica
+images_set = {f.name for f in IMAGES_DIR.glob("*.png")}
+fmask_set  = {f.name for f in FAKE_MASK.glob("*.png")}
+omask_set  = {f.name for f in ORIG_MASK.glob("*.png")}
 
-# Partición estratificada (§8.8.3)
-labels = [s[2] for s in samples]
-train_val, test = train_test_split(samples, test_size=0.15, stratify=labels, random_state=42)
-labels_tv = [s[2] for s in train_val]
-train, val = train_test_split(train_val, test_size=0.176, stratify=labels_tv, random_state=42)
-# 0.176 de 0.85 ≈ 15% del total → partición 70/15/15
+print(f"  images/:        {len(images_set):>6} archivos")
+print(f"  fake_mask/:     {len(fmask_set):>6} archivos")
+print(f"  original_mask/: {len(omask_set):>6} archivos")
 
-splits = {"train": train, "val": val, "test": test}
+# Archivos que faltan en alguna carpeta
+solo_en_images   = images_set - fmask_set - omask_set
+faltan_en_images = (fmask_set | omask_set) - images_set
 
-with h5py.File(OUT_HDF5, "w") as f:
-    for split_name, split_data in splits.items():
-        n = len(split_data)
-        grp = f.create_group(split_name)
-        imgs  = grp.create_dataset("images", shape=(n, 256, 256, 3), dtype=np.uint8,
-                                   compression="gzip", compression_opts=4)
-        masks = grp.create_dataset("masks",  shape=(n, 256, 256),    dtype=np.uint8,
-                                   compression="gzip", compression_opts=4)
-        lbls  = grp.create_dataset("labels", shape=(n,),             dtype=np.uint8)
+if solo_en_images:
+    print(f"\n  ADVERTENCIA: {len(solo_en_images)} imágenes sin máscara correspondiente")
+if faltan_en_images:
+    print(f"  ADVERTENCIA: {len(faltan_en_images)} máscaras sin imagen correspondiente")
 
-        for i, (img_path, mask_path, label) in enumerate(tqdm(split_data, desc=split_name)):
-            imgs[i]  = load_img(img_path)
-            masks[i] = load_mask(mask_path)
-            lbls[i]  = label
+# Conjunto válido (tiene las tres carpetas)
+validos = images_set & fmask_set & omask_set
 
-    # Metadatos de auditoría forense (§8.11.2 — trazabilidad)
-    f.attrs["total_samples"]   = len(samples)
-    f.attrs["train_samples"]   = len(train)
-    f.attrs["val_samples"]     = len(val)
-    f.attrs["test_samples"]    = len(test)
-    f.attrs["image_size"]      = "256x256"
-    f.attrs["mask_convention"] = "0=authentic, 1=manipulated"
+# ── Resumen final ─────────────────────────────────────────────────────────────
+print(f"\n[3/3] Resultado:")
+print(f"  Tripletas completas (imagen + 2 máscaras): {len(validos)}")
 
-print(f"HDF5 generado: {OUT_HDF5} | Total: {len(samples)} muestras")
+if len(validos) == len(images_set) == len(fmask_set) == len(omask_set):
+    print("  ✓ Dataset consistente. Listo para entrenamiento.")
+    print(f"\n  Siguiente paso (en Laptop):")
+    print(f"  python src/train_.py")
+else:
+    print("  ✗ Dataset inconsistente. Revisa los pasos anteriores.")

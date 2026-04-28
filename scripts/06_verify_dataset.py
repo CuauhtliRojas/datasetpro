@@ -1,28 +1,48 @@
 # scripts/06_verify_dataset.py
 """
-Verifica: distribución de clases, ratio de píxeles positivos por máscara,
-e imágenes con máscara vacía (potencial fallo del detector facial).
-Justificación: §8.9.1 — diagnosticar desbalance de clases antes de entrenar.
+Verifica el estado actual del proyecto sin necesitar GPU.
+Puedes correr esto en cualquier momento y en cualquier dispositivo.
 """
-import h5py
-import numpy as np
+
 from pathlib import Path
 
-HDF5 = Path("data/processed/dataset.h5")
+def contar(carpeta, extension="*.png"):
+    p = Path(carpeta)
+    if not p.exists():
+        return 0, "❌ carpeta no existe"
+    n = len(list(p.glob(extension)))
+    return n, "✓" if n > 0 else "⚠ vacía"
 
-with h5py.File(HDF5, "r") as f:
-    for split in ["train", "val", "test"]:
-        labels = f[split]["labels"][:]
-        masks  = f[split]["masks"][:]
-        n_fake = (labels == 1).sum()
-        n_real = (labels == 0).sum()
-        
-        # Ratio de píxeles positivos (§8.9.1 — desbalance de clases)
-        fake_masks = masks[labels == 1]
-        pixel_ratios = fake_masks.mean(axis=(1,2))
-        empty_masks  = (pixel_ratios == 0).sum()
+print("=" * 50)
+print("ESTADO DEL DATASET — DeepShield Pipeline")
+print("=" * 50)
 
-        print(f"\n{split.upper()}: {len(labels)} muestras")
-        print(f"  Reales: {n_real} | Falsas: {n_fake}")
-        print(f"  Ratio px positivos (media): {pixel_ratios.mean():.4f}")
-        print(f"  Máscaras vacías en fakes: {empty_masks} ({empty_masks/n_fake*100:.1f}%)")
+carpetas = [
+    ("data/raw/real",              "Imágenes reales (FFHQ)"),
+    ("data/raw/fake_swap",         "Fakes generados (SimSwap)"),
+    ("data/Train_D/images",        "Train_D/images"),
+    ("data/Train_D/fake_mask",     "Train_D/fake_mask"),
+    ("data/Train_D/original_mask", "Train_D/original_mask"),
+]
+
+for ruta, nombre in carpetas:
+    n, estado in contar(ruta):
+    print(f"  {estado}  {nombre:<35} {n:>6} archivos")
+
+print("=" * 50)
+print("\nPróximo paso pendiente:")
+
+real_n   = len(list(Path("data/raw/real").glob("*.png")))       if Path("data/raw/real").exists()      else 0
+fake_n   = len(list(Path("data/raw/fake_swap").glob("*.png")))  if Path("data/raw/fake_swap").exists() else 0
+train_n  = len(list(Path("data/Train_D/images").glob("*.png"))) if Path("data/Train_D/images").exists() else 0
+
+if real_n == 0:
+    print("  → Ejecutar 01_download_ffhq.py")
+elif fake_n == 0:
+    print("  → ⚠ REQUIERE LAPTOP CON GPU")
+    print("    Ejecutar 02_generate_swaps.py en Laptop RTX 4050")
+elif train_n == 0:
+    print("  → Ejecutar 04_generate_masks.py")
+    print("  → Ejecutar 05_assemble_dataset.py")
+else:
+    print("  → Dataset listo. Ejecutar src/train_.py en Laptop")
