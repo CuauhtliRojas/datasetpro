@@ -1,6 +1,6 @@
-# scripts/08_generar_reenactment.py
+# scripts/05_generar_reenactment.py
 # =============================================================================
-# PASO 8 DEL PIPELINE — Recreación facial con First Order Motion Model
+# PASO 5 — Recreación facial con First Order Motion Model
 # =============================================================================
 #
 # QUÉ HACE:
@@ -15,9 +15,18 @@
 #   - Genera artefactos de deformación en zonas de alto movimiento
 #     (contorno labial, región periocular) — exactamente los detectables por U-Net
 #
+# EXTRACCIÓN DE LA MÁSCARA (GROUND-TRUTH):
+#   A diferencia del Inpainting o el Face Swap, en el Reenactment la identidad 
+#   no cambia, pero la geometría del rostro se deforma (los píxeles se desplazan). 
+#   Al restar la imagen original de la imagen animada, el fondo y el torso 
+#   (estáticos) se cancelan a cero (negro). La diferencia absoluta crea una 
+#   "huella fantasma" iluminando únicamente los píxeles que se movieron,
+#   obteniendo la topología exacta de la alteración matemática real.
+#
 # REQUIERE: GPU NVIDIA
 # ENTRADA:  data/raw/real/               — imágenes fuente (cuyo rostro se anima)
 # SALIDA:   data/raw/fake_reenactment/   — imágenes con expresión transferida
+#           data/raw/masks_reenactment/  — máscaras binarias de la deformación
 # =============================================================================
 
 import torch
@@ -27,14 +36,16 @@ import json
 import random
 from pathlib import Path
 from datetime import datetime
-from PIL import Image
 from tqdm import tqdm
 
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL  = Path("data/raw/real")
-DIRECTORIO_FAKE  = Path("data/raw/fake_reenactment")
-ARCHIVO_LOG      = Path("data/raw/reenactment_log.json")
+DIRECTORIO_REAL     = Path("data/raw/real")
+DIRECTORIO_FAKE     = Path("data/raw/fake_reenactment")
+DIRECTORIO_MASCARAS = Path("data/raw/masks_reenactment") 
+ARCHIVO_LOG         = Path("data/raw/reenactment_log.json")
+
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
+DIRECTORIO_MASCARAS.mkdir(parents=True, exist_ok=True) 
 
 SEMILLA = 42
 random.seed(SEMILLA)
@@ -80,7 +91,7 @@ def reenactment_afin(img_np, semilla_img):
     Simula cambio de pose/expresión con deformaciones geométricas controladas.
     Produce artefactos de borde y deformación similares a FOMM pero más simples.
 
-    Válido para prueba de pipeline — en producción usar FOMM completo.
+    Válido para pruebas — en producción usar FOMM completo o LivePortrait.
     """
     rng = np.random.RandomState(semilla_img)
     h, w = img_np.shape[:2]
@@ -113,8 +124,8 @@ if len(imagenes) == 0:
     print("Solución: ejecutar primero  uv run python scripts/01_descargar_ffhq.py")
     exit(1)
 
-# ── Generar reenactments ──────────────────────────────────────────────────────
-print(f"[3/4] Generando reenactments...")
+# ── Generar reenactments y máscaras ───────────────────────────────────────────
+print(f"[3/4] Generando reenactments y extrayendo máscaras binarias...")
 metodo = "FOMM" if usar_fomm else "Transformación afín (fallback)"
 print(f"      Método: {metodo}\n")
 
@@ -124,8 +135,10 @@ registro = []
 
 for i, ruta_real in enumerate(tqdm(imagenes, desc="Reenactment", unit="img")):
     ruta_destino = DIRECTORIO_FAKE / ruta_real.name
+    ruta_mascara = DIRECTORIO_MASCARAS / ruta_real.name
 
-    if ruta_destino.exists():
+    # Saltar si la imagen generada y su máscara ya existen
+    if ruta_destino.exists() and ruta_mascara.exists():
         exitosas += 1
         registro.append({"imagen": ruta_real.name, "estado": "ya_existia"})
         continue
@@ -144,12 +157,37 @@ for i, ruta_real in enumerate(tqdm(imagenes, desc="Reenactment", unit="img")):
             img_conductora = cv2.imread(str(conductora))
             # Aquí iría la llamada a make_animation de FOMM
             # resultado = make_animation(img_np, img_conductora, generador_fomm, kp_detector)
-            resultado = reenactment_afin(img_np, SEMILLA + i)  # Temporal hasta integrar FOMM
+            resultado = reenactment_afin(img_np, SEMILLA + i)  # Temporal hasta integrar modelo real
         else:
             # Fallback: transformación afín
             resultado = reenactment_afin(img_np, SEMILLA + i)
 
+        # ── EXTRACCIÓN FORENSE DE LA MÁSCARA (REENACTMENT) ────────────────────
+        # 1. Calcular la diferencia absoluta píxel a píxel
+        diferencia = cv2.absdiff(img_np, resultado)
+        
+        # 2. Conversión a escala de grises para reducir dimensionalidad
+        diff_gris = cv2.cvtColor(diferencia, cv2.COLOR_BGR2GRAY)
+        
+        # 3. Binarización por umbral (Thresholding)
+        # Se aplica un umbral de 5 para filtrar el ruido imperceptible de recodificación 
+        # en las zonas "estáticas". Cualquier desplazamiento real (diferencia > 5) 
+        # se empuja a blanco absoluto (255).
+        _, mascara_binaria = cv2.threshold(diff_gris, 5, 255, cv2.THRESH_BINARY)
+        
+        # 4. Operaciones morfológicas para consolidar la huella
+        # En el reenactment, el movimiento genera líneas finas (los bordes de la cara 
+        # que se estiraron). Se usa un kernel más robusto (7x7) para conectar estas 
+        # líneas y formar áreas sólidas, facilitando la convergencia de la U-Net.
+        kernel = np.ones((7,7), np.uint8)
+        mascara_limpia = cv2.morphologyEx(mascara_binaria, cv2.MORPH_CLOSE, kernel)
+        mascara_limpia = cv2.morphologyEx(mascara_limpia, cv2.MORPH_OPEN, kernel)
+        # ──────────────────────────────────────────────────────────────────────
+
+        # Guardar la imagen generada y la máscara
         cv2.imwrite(str(ruta_destino), resultado)
+        cv2.imwrite(str(ruta_mascara), mascara_limpia)
+
         exitosas += 1
         registro.append({
             "imagen": ruta_real.name,
@@ -179,6 +217,7 @@ print(f"\n[4/4] Resumen:")
 print(f"  Reenactments generados: {exitosas}")
 print(f"  Errores:                {errores}")
 print(f"  Método utilizado:       {metodo}")
-print(f"  Total en fake_reenactment/: {len(list(DIRECTORIO_FAKE.glob('*.png')))}")
+print(f"  Total en fake_reenactment/:  {len(list(DIRECTORIO_FAKE.glob('*.png')))}")
+print(f"  Total máscaras generadas:    {len(list(DIRECTORIO_MASCARAS.glob('*.png')))}")
 print(f"\nSIGUIENTE PASO:")
-print(f"  uv run python scripts/09_ensamblar_dataset_completo.py")
+print(f"  uv run python scripts/07_ensamblar_dataset_completo.py")
