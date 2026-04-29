@@ -372,6 +372,7 @@ dependencies = [
     { name = "albumentations" },
     { name = "diffusers" },
     { name = "h5py" },
+    { name = "huggingface-hub" },
     { name = "insightface" },
     { name = "kaggle" },
     { name = "numpy" },
@@ -381,6 +382,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
     { name = "torch", version = "2.6.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "sys_platform == 'win32'" },
+    { name = "torch-fidelity" },
     { name = "torchaudio", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
     { name = "torchaudio", version = "2.6.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "sys_platform == 'win32'" },
     { name = "torchvision", version = "0.21.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
@@ -395,6 +397,7 @@ requires-dist = [
     { name = "albumentations", specifier = ">=1.4.0" },
     { name = "diffusers", specifier = ">=0.30.0" },
     { name = "h5py", specifier = ">=3.11.0" },
+    { name = "huggingface-hub", specifier = ">=1.12.0" },
     { name = "insightface", specifier = ">=0.7.3" },
     { name = "kaggle", specifier = ">=2.1.0" },
     { name = "numpy", specifier = ">=1.26.0" },
@@ -404,6 +407,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.5.0" },
     { name = "torch", marker = "sys_platform != 'win32'", specifier = "==2.6.0" },
     { name = "torch", marker = "sys_platform == 'win32'", specifier = "==2.6.0", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torch-fidelity", specifier = ">=0.4.0" },
     { name = "torchaudio", marker = "sys_platform != 'win32'", specifier = "==2.6.0" },
     { name = "torchaudio", marker = "sys_platform == 'win32'", specifier = "==2.6.0", index = "https://download.pytorch.org/whl/cu124" },
     { name = "torchvision", marker = "sys_platform != 'win32'", specifier = "==0.21.0" },
@@ -2619,6 +2623,24 @@ wheels = [
     { url = "https://download-r2.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp311-cp311-win_amd64.whl", hash = "sha256:6a1fb2714e9323f11edb6e8abf7aad5f79e45ad25c081cde87681a18d99c29eb", upload-time = "2025-01-30T00:55:31Z" },
     { url = "https://download-r2.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp312-cp312-win_amd64.whl", hash = "sha256:3313061c1fec4c7310cf47944e84513dcd27b6173b72a349bb7ca68d0ee6e9c0", upload-time = "2025-01-30T00:57:40Z" },
     { url = "https://download-r2.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp313-cp313-win_amd64.whl", hash = "sha256:519330eef09534acad8110b6f423d2fe58c1d8e9ada999ed077a637a0021f908", upload-time = "2025-01-30T00:59:45Z" },
+]
+
+[[package]]
+name = "torch-fidelity"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
+    { name = "torch", version = "2.6.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "sys_platform == 'win32'" },
+    { name = "torchvision", version = "0.21.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
+    { name = "torchvision", version = "0.21.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "sys_platform == 'win32'" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/32/37/94e4d31a157bae81622557b7f94f93ca3749e6b592203633858dbca8c835/torch_fidelity-0.4.0.tar.gz", hash = "sha256:73548b97f1a844cb94dee7736c8485cbf1e5ae43670679f62ffb7bbb8bb3d455", size = 1349034, upload-time = "2026-02-17T21:04:57.976Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/35/e0988c963538d155befe1c4e1b90ff2925eaa40acc27fb2bba737dcb7288/torch_fidelity-0.4.0-py3-none-any.whl", hash = "sha256:99f4c610ea16972628eceb26afb0008e528da2d44123db947b408750efbd35d4", size = 85594, upload-time = "2026-02-17T21:04:56.166Z" },
 ]
 
 [[package]]
