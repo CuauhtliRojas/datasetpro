@@ -52,7 +52,7 @@ resultado = subprocess.run([
 
 if resultado.returncode != 0:
     print("ERROR: Falló la descarga de Kaggle.")
-    print("Solución: Verifica que existe C:\\Users\\TU_USUARIO\\.kaggle\\kaggle.json")
+    print("Solución: Verifica que existe C:\\Users\\TU_USUARIO_DE_PC\\.kaggle\\kaggle.json")
     exit(1)
 
 # ── Buscar imágenes descargadas ───────────────────────────────────────────────

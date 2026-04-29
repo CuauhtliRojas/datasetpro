@@ -98,7 +98,7 @@ Si el comando no existe, instala los drivers NVIDIA desde:
 ### 4. Clonar el repositorio
 
 ```powershell
-git clone https://github.com/TU_USUARIO/datasetpro.git
+git clone https://github.com/CuauhtliRojas/datasetpro
 cd datasetpro
 ```
 
@@ -136,7 +136,7 @@ uv run python -c "import torch; print('CUDA:', torch.cuda.is_available()); print
 4. Coloca el archivo en:
 
 ```powershell
-mkdir C:\Users\TU_USUARIO\.kaggle
+mkdir C:\Users\TU_USUARIO_DE_PC\.kaggle
 # Copia kaggle.json a esa carpeta
 ```
 
@@ -147,7 +147,7 @@ El archivo debe contener:
 
 Verifica:
 ```powershell
-Test-Path C:\Users\TU_USUARIO\.kaggle\kaggle.json
+Test-Path C:\Users\TU_USUARIO_DE_PC\.kaggle\kaggle.json
 # Resultado esperado: True
 ```
 
@@ -162,17 +162,17 @@ https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx
 
 Colócalo en:
 ```
-C:\Users\TU_USUARIO\.insightface\models\inswapper_128.onnx
+C:\Users\TU_USUARIO_DE_PC\.insightface\models\inswapper_128.onnx
 ```
 
 Crea la carpeta si no existe:
 ```powershell
-mkdir C:\Users\TU_USUARIO\.insightface\models
+mkdir C:\Users\TU_USUARIO_DE_PC\.insightface\models
 ```
 
 Verifica:
 ```powershell
-Test-Path C:\Users\TU_USUARIO\.insightface\models\inswapper_128.onnx
+Test-Path C:\Users\TU_USUARIO_DE_PC\.insightface\models\inswapper_128.onnx
 # Resultado esperado: True
 ```
 

@@ -22,8 +22,8 @@
 #
 # REQUISITO MANUAL — inswapper_128.onnx:
 #   Descargar desde HuggingFace (~500 MB) y colocar en:
-#   C:\Users\TU_USUARIO\.insightface\models\inswapper_128.onnx
-#   URL: https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx
+#   C:\Users\TU_USUARIO_DE_PC\.insightface\models\inswapper_128.onnx
+#   URL: https://drive.google.com/file/d/1krOLgjW2tAPaqV-Bw4YALz0xT5zlb5HF/view
 #
 # REQUIERE: GPU NVIDIA con CUDA
 # ENTRADA:  data/raw/real/       — imágenes reales (PNG numerados)
@@ -134,16 +134,34 @@ for ruta_objetivo in tqdm(imagenes, desc="Procesando", unit="img"):
         
         # ── EXTRACCIÓN DE LA MÁSCARA BINARIA ──────────────────────────────
         # 1. Calcular la diferencia absoluta entre la original y el swap
+        # Se comparan los tensores de la imagen original y la imagen procesada
+        # (el swap). La función resta el valor de cada píxel, devolviendo el 
+        # valor absoluto de la diferencia. Si un píxel no fue alterado por InsightFace,
+        # su diferencia será 0 (o muy cercana a 0). Esto resalta instantáneamente
+        # la "caja delimitadora" irregular y el difuminado (blending) donde se pegó el nuevo rostro.
         diferencia = cv2.absdiff(img_objetivo, resultado)
         
         # 2. Convertir a escala de grises
+        # La diferencia absoluta devuelve una imagen de 3 canales (BGR). 
+        # Para crear una máscara de segmentación de una sola clase (manipulado vs. no manipulado),
+        # necesitamos colapsar esos 3 canales en una única matriz de intensidades de 0 a 255.
         diff_gris = cv2.cvtColor(diferencia, cv2.COLOR_BGR2GRAY)
         
         # 3. Binarizar: Cualquier pixel con una diferencia > 5 se marca como blanco (255)
         # Usamos 5 en lugar de 0 para ignorar ruidos mínimos de compresión
+        # Se evalúa la imagen en escala de grises. Cualquier píxel cuya intensidad 
+        # supere un valor mínimo de tolerancia (ej. 5 sobre 255) se empuja al valor 
+        # máximo (255, blanco absoluto). Los demás se reducen a 0 (negro absoluto). 
+        # El umbral de "5" es crucial porque ignora el ruido imperceptible de recodificación, 
+        # la compresión JPEG o variaciones de punto flotante, capturando únicamente 
+        # las modificaciones reales del modelo generativo.
         _, mascara_binaria = cv2.threshold(diff_gris, 5, 255, cv2.THRESH_BINARY)
         
         # 4. Operaciones morfológicas para limpiar ruido (artefactos sueltos) y rellenar huecos
+        # Es una dilatación seguida de una erosión. Sirve para rellenar los "agujeros" negros 
+        # dentro de la máscara blanca del rostro. Esto ocurre cuando algunos píxeles del rostro 
+        # falso casualmente tienen el mismo color exacto que el rostro original, dando un falso 
+        # negativo en la resta absoluta.
         kernel = np.ones((5,5), np.uint8)
         mascara_limpia = cv2.morphologyEx(mascara_binaria, cv2.MORPH_OPEN, kernel) # Elimina ruido externo
         mascara_limpia = cv2.morphologyEx(mascara_limpia, cv2.MORPH_CLOSE, kernel) # Rellena huecos internos
