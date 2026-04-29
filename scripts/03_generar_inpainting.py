@@ -1,6 +1,6 @@
 # scripts/03_generar_inpainting.py
 # =============================================================================
-# PASO 3 DEL PIPELINE — Generación de fakes locales y extracción de máscaras
+# PASO 3 — Generación de fakes locales y extracción de máscaras
 # =============================================================================
 #
 # QUÉ HACE:

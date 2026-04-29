@@ -1,11 +1,11 @@
 # scripts/01_descargar_ffhq.py
 # =============================================================================
-# PASO 1 DEL PIPELINE — Descarga de imágenes reales FFHQ
+# PASO 1 — Descarga de imágenes reales FFHQ
 # =============================================================================
 #
 # QUÉ HACE:
 #   Descarga el dataset FFHQ (Flickr-Faces-HQ) desde Kaggle y selecciona
-#   aleatoriamente 1,000 imágenes para usarlas como base auténtica del pipeline.
+#   aleatoriamente 500 imágenes para usarlas como base auténtica..
 #
 # POR QUÉ FFHQ (8.8.1 del documento):
 #   - Diversidad demográfica real sin sesgo de identidad de actor
@@ -17,7 +17,7 @@
 #   - Conexión a internet (~2 GB de descarga)
 #
 # ENTRADA:  Ninguna
-# SALIDA:   data/raw/real/  — 1,000 PNG numerados (00000.png ... 00999.png)
+# SALIDA:   data/raw/real/  — 500 PNG numerados (00000.png ... 00499.png)
 #
 # CÓMO REANUDAR SI SE INTERRUMPE:
 #   Borra data/raw/real/ y vuelve a ejecutar el script.

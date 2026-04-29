@@ -1,6 +1,6 @@
 # scripts/05_ensamblar_dataset.py
 # =============================================================================
-# PASO 5 DEL PIPELINE — Ensamblado final del dataset Train_D/
+# PASO 5  — Ensamblado final del dataset Train_D/
 # =============================================================================
 #
 # QUÉ HACE:

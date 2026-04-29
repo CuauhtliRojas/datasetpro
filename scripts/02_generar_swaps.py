@@ -1,6 +1,6 @@
 # scripts/02_generar_swaps.py
 # =============================================================================
-# PASO 2 DEL PIPELINE — Generación de imágenes falsas con intercambio de rostro
+# PASO 2 — Generación de imágenes falsas con intercambio de rostro
 # =============================================================================
 #
 # QUÉ HACE:

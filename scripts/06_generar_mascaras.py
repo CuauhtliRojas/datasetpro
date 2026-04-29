@@ -1,6 +1,6 @@
 # scripts/04_generar_mascaras.py
 # =============================================================================
-# PASO 4 DEL PIPELINE — Generación automática de máscaras binarias
+# PASO 4 — Generación automática de máscaras binarias
 # =============================================================================
 #
 # QUÉ HACE:

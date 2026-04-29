@@ -4,7 +4,7 @@
 # =============================================================================
 #
 # QUÉ HACE:
-#   Muestra el estado de todas las carpetas del pipeline y dice cuál es
+#   Muestra el estado de todas las carpetas y dice cuál es
 #   el siguiente paso a ejecutar. Puedes correr este script en cualquier
 #   momento y en cualquier dispositivo (no requiere GPU).
 # =============================================================================
@@ -20,7 +20,7 @@ def contar(carpeta, extension="*.png"):
     return n, estado
 
 print("=" * 60)
-print("ESTADO DEL DATASET — Pipeline DeepShield")
+print("ESTADO DEL DATASET — datasetpro")
 print("=" * 60)
 
 carpetas = [
