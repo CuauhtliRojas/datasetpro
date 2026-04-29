@@ -1,27 +1,27 @@
 # scripts/03_generar_inpainting.py
 # =============================================================================
-# PASO 3 DEL PIPELINE — Generación de fakes por edición local (inpainting)
+# PASO 3 DEL PIPELINE — Generación de fakes locales y extracción de máscaras
 # =============================================================================
 #
 # QUÉ HACE:
-#   Usa Stable Diffusion Inpainting para editar zonas específicas del rostro
-#   (boca, ojos, zona periocular) reemplazándolas con contenido sintético.
-#   Cubre la tipología "edición local" de 8.1.1.
+#   1. Usa Stable Diffusion Inpainting para editar zonas del rostro.
+#   2. Calcula matemáticamente la diferencia entre la imagen original y la 
+#      generada para extraer la máscara binaria del área REALMENTE alterada.
 #
 # POR QUÉ SD INPAINTING (8.1.1, 8.7.1):
-#   - Edita regiones acotadas del rostro sin reemplazar la identidad completa
-#   - Introduce inconsistencias fotométricas locales detectables (8.7.1)
-#   - Genera discontinuidades en bordes de la región editada
-#   - Complementa el reemplazo de rostro del script 02 con artefactos distintos
+#   - Edita regiones acotadas del rostro sin reemplazar la identidad completa.
+#   - Introduce inconsistencias fotométricas locales y artefactos del VAE.
 #
-# ARTEFACTOS QUE INTRODUCE:
-#   - Inconsistencias fotométricas en la zona editada vs contexto original
-#   - Bordes de fusión entre región generada y región auténtica
-#   - Diferencias de textura de piel en zona inpainted
+# POR QUÉ MÁSCARAS POR DIFERENCIA (Ground-Truth):
+#   - Aunque le damos una caja blanca a SD para que pinte ahí, el proceso de
+#     difusión y el decodificador VAE difuminan bordes y alteran píxeles
+#     aledaños. Calcular cv2.absdiff nos da la huella forense exacta de
+#     lo que se modificó, siendo una etiqueta perfecta para la U-Net.
 #
 # REQUIERE: GPU NVIDIA + cuenta HuggingFace con token configurado
-# ENTRADA:  data/raw/real/              — imágenes reales base
-# SALIDA:   data/raw/fake_inpainting/   — imágenes con edición local
+# ENTRADA:  data/raw/real/             — imágenes reales base
+# SALIDA:   data/raw/fake_inpainting/  — imágenes con edición local
+#           data/raw/masks_inpainting/ — máscaras binarias de la manipulación
 #           data/raw/inpainting_log.json
 # =============================================================================
 
@@ -29,6 +29,7 @@ import torch
 import cv2
 import numpy as np
 import json
+import random
 from pathlib import Path
 from datetime import datetime
 from PIL import Image
@@ -36,22 +37,22 @@ from tqdm import tqdm
 from diffusers import StableDiffusionInpaintPipeline
 
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL  = Path("data/raw/real")
-DIRECTORIO_FAKE  = Path("data/raw/fake_inpainting")
-ARCHIVO_LOG      = Path("data/raw/inpainting_log.json")
+DIRECTORIO_REAL      = Path("data/raw/real")
+DIRECTORIO_FAKE      = Path("data/raw/fake_inpainting")
+DIRECTORIO_MASCARAS  = Path("data/raw/masks_inpainting") # NUEVO: Ruta de máscaras
+ARCHIVO_LOG          = Path("data/raw/inpainting_log.json")
+
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
+DIRECTORIO_MASCARAS.mkdir(parents=True, exist_ok=True)
 
 # Regiones faciales a editar — coordenadas relativas (0.0 a 1.0)
-# Formato: (x_inicio, y_inicio, x_fin, y_fin)
-# Se eligen aleatoriamente para variar la zona editada por imagen
 REGIONES_FACIALES = {
-    "boca":          (0.25, 0.60, 0.75, 0.85),   # Zona labial (8.3.1)
-    "ojo_izquierdo": (0.10, 0.25, 0.45, 0.50),   # Región periocular izq
-    "ojo_derecho":   (0.55, 0.25, 0.90, 0.50),   # Región periocular der
-    "nariz":         (0.30, 0.40, 0.70, 0.65),   # Zona nasal
+    "boca":          (0.25, 0.60, 0.75, 0.85),
+    "ojo_izquierdo": (0.10, 0.25, 0.45, 0.50),
+    "ojo_derecho":   (0.55, 0.25, 0.90, 0.50),
+    "nariz":         (0.30, 0.40, 0.70, 0.65),
 }
 
-# Prompts para guiar la generación — variedad para evitar sesgo de método (8.8.2)
 PROMPTS = [
     "realistic human face, natural skin texture, photorealistic",
     "person face with different features, photorealistic, 8k",
@@ -59,32 +60,31 @@ PROMPTS = [
     "human face, different person, photorealistic skin",
 ]
 
-SEMILLA   = 42
-PASOS_SD  = 30   # Pasos de difusión — balance calidad/velocidad en RTX 4050
-GUIA      = 7.5  # Guidance scale
+SEMILLA  = 42
+PASOS_SD = 30
+GUIA     = 7.5
+
+# Fijar semillas para reproducibilidad del experimento
+random.seed(SEMILLA)
+np.random.seed(SEMILLA)
 
 # ── Cargar modelo SD Inpainting ───────────────────────────────────────────────
-# runwayml/stable-diffusion-inpainting: modelo optimizado para inpainting
-# Descarga ~5GB en primera ejecución desde HuggingFace
 print("[1/4] Cargando Stable Diffusion Inpainting...")
-print("      (Primera ejecución descarga ~5GB desde HuggingFace)")
-
 pipeline = StableDiffusionInpaintPipeline.from_pretrained(
     "runwayml/stable-diffusion-inpainting",
-    torch_dtype=torch.float16,    # float16 para caber en 6GB VRAM
-    safety_checker=None,          # Desactivar para rostros
+    torch_dtype=torch.float16,
+    safety_checker=None,
     requires_safety_checker=False
 ).to("cuda")
 
-pipeline.set_progress_bar_config(disable=True)  # Silenciar barra interna de SD
-
+pipeline.set_progress_bar_config(disable=True)
 print("      Modelo cargado correctamente en GPU")
 
 # ── Funciones auxiliares ──────────────────────────────────────────────────────
 def crear_mascara_region(ancho, alto, region_rel):
     """
-    Crea máscara binaria PIL para la región facial a editar.
-    region_rel: tupla (x0, y0, x1, y1) en coordenadas relativas 0.0-1.0
+    Crea la máscara de ENTRADA (caja delimitadora) para guiar a Stable Diffusion.
+    OJO: Esta NO es la máscara final de entrenamiento para la U-Net.
     """
     mascara = Image.new("RGB", (ancho, alto), "black")
     x0 = int(region_rel[0] * ancho)
@@ -92,82 +92,108 @@ def crear_mascara_region(ancho, alto, region_rel):
     x1 = int(region_rel[2] * ancho)
     y1 = int(region_rel[3] * alto)
 
-    # Dibujar región blanca (zona a inpaint)
     import PIL.ImageDraw as ImageDraw
     draw = ImageDraw.Draw(mascara)
     draw.rectangle([x0, y0, x1, y1], fill="white")
     return mascara, (x0, y0, x1, y1)
 
 # ── Cargar imágenes ───────────────────────────────────────────────────────────
-import random
-random.seed(SEMILLA)
-np.random.seed(SEMILLA)
-
 imagenes = sorted(DIRECTORIO_REAL.glob("*.png"))
 print(f"\n[2/4] Imágenes reales encontradas: {len(imagenes)}")
 
 if len(imagenes) == 0:
     print("ERROR: No hay imágenes en data/raw/real/")
-    print("Solución: ejecutar primero  uv run python scripts/01_descargar_ffhq.py")
     exit(1)
 
-# ── Generar inpaintings ───────────────────────────────────────────────────────
-print(f"[3/4] Generando ediciones locales con SD Inpainting...")
-print(f"      Región editada varía por imagen para diversidad de dataset")
-print(f"      Tiempo estimado: ~20 segundos por imagen en RTX 4050\n")
+# ── Generar inpaintings y máscaras ground-truth ───────────────────────────────
+print(f"[3/4] Generando ediciones locales y extrayendo máscaras...")
 
-exitosas   = 0
-errores    = 0
-registro   = []
+exitosas = 0
+errores  = 0
+registro = []
 
 nombres_regiones = list(REGIONES_FACIALES.keys())
-nombres_prompts  = PROMPTS
-
 generador = torch.Generator("cuda").manual_seed(SEMILLA)
 
 for i, ruta_real in enumerate(tqdm(imagenes, desc="Inpainting", unit="img")):
     ruta_destino = DIRECTORIO_FAKE / ruta_real.name
+    ruta_mascara = DIRECTORIO_MASCARAS / ruta_real.name
 
-    if ruta_destino.exists():
+    # Si ya existe la imagen falsa Y la máscara, saltar (reanudación segura)
+    if ruta_destino.exists() and ruta_mascara.exists():
         exitosas += 1
         registro.append({"imagen": ruta_real.name, "estado": "ya_existia"})
         continue
 
     try:
-        # Cargar imagen y redimensionar a 512px (requerimiento de SD)
-        img_pil = Image.open(ruta_real).convert("RGB").resize((512, 512))
-        ancho, alto = img_pil.size
-
-        # Elegir región y prompt aleatoriamente
+        # 1. Preparación para SD (requiere formato PIL y 512x512)
+        img_original_pil = Image.open(ruta_real).convert("RGB")
+        w_orig, h_orig = img_original_pil.size
+        img_512 = img_original_pil.resize((512, 512), Image.Resampling.LANCZOS) # Corrección Pillow 10+
+        
         nombre_region = random.choice(nombres_regiones)
         region_rel    = REGIONES_FACIALES[nombre_region]
-        prompt        = random.choice(nombres_prompts)
+        prompt        = random.choice(PROMPTS)
 
-        # Crear máscara de la región a editar
-        mascara_pil, coords = crear_mascara_region(ancho, alto, region_rel)
+        mascara_guia, coords = crear_mascara_region(512, 512, region_rel)
 
-        # Ejecutar inpainting
-        resultado = pipeline(
-            prompt          = prompt,
-            image           = img_pil,
-            mask_image      = mascara_pil,
+        # 2. Generación Sintética (Inferencia)
+        resultado_512 = pipeline(
+            prompt              = prompt,
+            image               = img_512,
+            mask_image          = mascara_guia,
             num_inference_steps = PASOS_SD,
-            guidance_scale  = GUIA,
-            generator       = generador,
+            guidance_scale      = GUIA,
+            generator           = generador,
         ).images[0]
 
-        # Redimensionar de vuelta al tamaño original (128x128)
-        img_original = Image.open(ruta_real).convert("RGB")
-        w_orig, h_orig = img_original.size
-        resultado_final = resultado.resize((w_orig, h_orig), Image.LANCZOS)
-        resultado_final.save(ruta_destino, "PNG")
+        # 3. Restaurar resolución original
+        resultado_final_pil = resultado_512.resize((w_orig, h_orig), Image.Resampling.LANCZOS)
+        
+        # ── EXTRACCIÓN FORENSE DE LA MÁSCARA (NUEVO) ──────────────────────────
+        # 0. Conversión de formatos
+        # Convertir imágenes de formato PIL (RGB) a OpenCV (NumPy BGR) para poder 
+        # operar algebraicamente con las matrices de píxeles.
+        img_real_cv = cv2.cvtColor(np.array(img_original_pil), cv2.COLOR_RGB2BGR)
+        img_fake_cv = cv2.cvtColor(np.array(resultado_final_pil), cv2.COLOR_RGB2BGR)
+        
+        # 1. Calcular la diferencia absoluta píxel a píxel
+        # Dado que el VAE de Stable Diffusion reconstruye toda la imagen (no solo el 
+        # cuadro blanco de la guía) y aplica difuminados en los bordes, el rectángulo 
+        # original no sirve como etiqueta. Se calcula la diferencia para obtener la 
+        # huella forense exacta de la alteración matemática real.
+        diferencia = cv2.absdiff(img_real_cv, img_fake_cv)
+        # 2. Convertir a escala de grises
+        # Reducción de dimensionalidad: colapsamos los 3 canales BGR de la diferencia 
+        # en una única matriz de intensidades de 0 a 255.
+        diff_gris  = cv2.cvtColor(diferencia, cv2.COLOR_BGR2GRAY)
+        
+        # 3. Binarizar por Umbral
+        # Se aplica un umbral estricto (> 5 sobre 255). Cualquier pixel modificado 
+        # pasa a ser blanco absoluto (255) y el resto negro (0). Esto es vital para 
+        # ignorar el ruido imperceptible de decodificación del VAE o las pequeñas 
+        # variaciones introducidas por el escalado bidireccional (256 <-> 512).
+        _, mascara_binaria = cv2.threshold(diff_gris, 5, 255, cv2.THRESH_BINARY)
+        
+        # 4. Operaciones morfológicas para agrupar los píxeles editados
+        # Apertura (OPEN): Erosión seguida de dilatación para borrar puntos blancos 
+        # aislados (ruido estático fuera de la región facial).
+        # Cierre (CLOSE): Dilatación seguida de erosión para rellenar huecos negros 
+        # dentro de la máscara principal causados por coincidencias casuales de color.
+        kernel = np.ones((5,5), np.uint8)
+        mascara_limpia = cv2.morphologyEx(mascara_binaria, cv2.MORPH_OPEN, kernel)
+        mascara_limpia = cv2.morphologyEx(mascara_limpia, cv2.MORPH_CLOSE, kernel)
+        # ──────────────────────────────────────────────────────────────────────
+        
+        # 4. Guardar disco
+        resultado_final_pil.save(ruta_destino, "PNG")
+        cv2.imwrite(str(ruta_mascara), mascara_limpia)
 
         exitosas += 1
         registro.append({
             "imagen":  ruta_real.name,
             "estado":  "exitoso",
             "region":  nombre_region,
-            "coords":  coords,
             "prompt":  prompt
         })
 
@@ -184,7 +210,6 @@ datos_log = {
     "pasos_sd":     PASOS_SD,
     "exitosas":     exitosas,
     "errores":      errores,
-    "total_salida": len(list(DIRECTORIO_FAKE.glob("*.png"))),
     "detalle":      registro
 }
 
@@ -192,9 +217,8 @@ with open(ARCHIVO_LOG, "w", encoding="utf-8") as f:
     json.dump(datos_log, f, indent=2, ensure_ascii=False)
 
 print(f"\n[4/4] Resumen:")
-print(f"  Inpaintings exitosos:  {exitosas}")
-print(f"  Errores:               {errores}")
+print(f"  Inpaintings exitosos:      {exitosas}")
+print(f"  Errores:                   {errores}")
 print(f"  Total en fake_inpainting/: {len(list(DIRECTORIO_FAKE.glob('*.png')))}")
-print(f"  Registro guardado en:  {ARCHIVO_LOG}")
-print(f"\nSIGUIENTE PASO:")
-print(f"  uv run python scripts/07_generar_sintesis.py")
+print(f"  Máscaras extraídas:        {len(list(DIRECTORIO_MASCARAS.glob('*.png')))}")
+print(f"  Registro guardado en:      {ARCHIVO_LOG}")

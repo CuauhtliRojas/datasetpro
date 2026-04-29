@@ -48,7 +48,7 @@ from insightface.app import FaceAnalysis
 # ── Configuración ─────────────────────────────────────────────────────────────
 DIRECTORIO_REAL     = Path("data/raw/real")
 DIRECTORIO_FAKE     = Path("data/raw/fake_swap")
-DIRECTORIO_MASCARAS = Path("data/raw/masks_fake_swap") # NUEVO: Directorio para las máscaras
+DIRECTORIO_MASCARAS = Path("data/raw/masks_fake_swap") 
 ARCHIVO_LOG         = Path("data/raw/swap_log.json")
 
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
