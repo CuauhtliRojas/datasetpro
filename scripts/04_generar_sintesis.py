@@ -1,6 +1,6 @@
-# scripts/07_generar_sintesis.py
+# scripts/04_generar_sintesis.py
 # =============================================================================
-# PASO 7 — Síntesis completa de rostros con Stable Diffusion text-to-image
+# PASO 4 — Síntesis completa de rostros con Stable Diffusion text-to-image
 # =============================================================================
 #
 # QUÉ HACE:
