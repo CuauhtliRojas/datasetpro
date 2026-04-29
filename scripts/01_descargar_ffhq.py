@@ -80,7 +80,7 @@ for i, ruta_origen in enumerate(tqdm(seleccionadas, desc="Copiando", unit="img")
     destino = DIRECTORIO_REAL / f"{i:05d}.png"
     try:
         img = Image.open(ruta_origen).convert("RGB")
-        img = img.resize((256, 256), Image.LANCZOS)
+        img = img.resize((256, 256), Image.Resampling.LANCZOS)
         img.save(destino, "PNG")
     except Exception as e:
         print(f"  Saltando {ruta_origen.name}: {e}")
