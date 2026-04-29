@@ -7,9 +7,9 @@
 #   Descarga el dataset FFHQ (Flickr-Faces-HQ) desde Kaggle y selecciona
 #   aleatoriamente 1,000 imágenes para usarlas como base auténtica del pipeline.
 #
-# POR QUÉ FFHQ (§8.8.1 del documento):
+# POR QUÉ FFHQ (8.8.1 del documento):
 #   - Diversidad demográfica real sin sesgo de identidad de actor
-#   - Alta resolución original (1024px) con señales de alta frecuencia (§8.5.2)
+#   - Alta resolución original (1024px) con señales de alta frecuencia (8.5.2)
 #   - Licencia de investigación compatible
 #
 # REQUISITOS:
@@ -36,8 +36,8 @@ DIRECTORIO_TEMP = Path("data/raw/_kaggle_temp")
 DIRECTORIO_REAL.mkdir(parents=True, exist_ok=True)
 DIRECTORIO_TEMP.mkdir(parents=True, exist_ok=True)
 
-TOTAL_IMAGENES = 1000
-SEMILLA = 42  # Semilla fija para reproducibilidad (§8.8.3)
+TOTAL_IMAGENES = 500
+SEMILLA = 42  # Semilla fija para reproducibilidad (8.8.3)
 random.seed(SEMILLA)
 
 # ── Descarga desde Kaggle ─────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ for i, ruta_origen in enumerate(tqdm(seleccionadas, desc="Copiando", unit="img")
     destino = DIRECTORIO_REAL / f"{i:05d}.png"
     try:
         img = Image.open(ruta_origen).convert("RGB")
+        img = img.resize((256, 256), Image.LANCZOS)
         img.save(destino, "PNG")
     except Exception as e:
         print(f"  Saltando {ruta_origen.name}: {e}")

@@ -6,14 +6,14 @@
 # QUÉ HACE:
 #   Genera rostros 100% sintéticos mediante text-to-image con SD.
 #   No existe persona real de origen — identidad completamente inventada.
-#   Cubre tipología "síntesis completa" de §8.1.1.
+#   Cubre tipología "síntesis completa" de 8.1.1.
 #
 # POR QUÉ SD text-to-image:
 #   - Ya está descargado en caché del paso 03 (no descarga nada nuevo)
 #   - Genera artefactos fotométricos y de textura distintos al inpainting
-#   - Produce coherencia global alta con inconsistencias locales (§8.7.1)
+#   - Produce coherencia global alta con inconsistencias locales (8.7.1)
 #
-# ESTRATEGIA DE ETIQUETADO (§8.1.2):
+# ESTRATEGIA DE ETIQUETADO (8.1.2):
 #   Síntesis completa = toda la imagen es manipulada.
 #   fake_mask    → rostro completo detectado = blanco
 #   original_mask → todo negro (no hay zona auténtica)
@@ -44,7 +44,7 @@ SEMILLA        = 42
 PASOS_SD       = 25   # Menos pasos que inpainting — síntesis completa necesita menos
 random.seed(SEMILLA)
 
-# Prompts variados para diversidad de identidades sintéticas (§8.8.2)
+# Prompts variados para diversidad de identidades sintéticas (8.8.2)
 PROMPTS = [
     "portrait photo of a person, photorealistic, high detail, natural lighting",
     "close up face portrait, realistic skin texture, photorealistic",
@@ -105,7 +105,7 @@ for i, ruta_real in enumerate(tqdm(imagenes_reales, desc="Síntesis", unit="img"
         ).images[0]
 
         # Redimensionar a 128×128 para consistencia con el resto del dataset
-        resultado_final = resultado.resize((128, 128), Image.LANCZOS)
+        resultado_final = resultado.resize((256, 256), Image.LANCZOS)
         resultado_final.save(ruta_destino, "PNG")
 
         exitosas += 1

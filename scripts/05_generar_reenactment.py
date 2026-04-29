@@ -7,11 +7,11 @@
 #   Transfiere expresiones faciales de una imagen "conductora" a cada imagen
 #   real. El resultado es la misma persona con una expresión diferente —
 #   la identidad se preserva pero el movimiento facial es sintético.
-#   Cubre la tipología "recreación/reenactment" de §8.1.1.
+#   Cubre la tipología "recreación/reenactment" de 8.1.1.
 #
-# POR QUÉ FOMM (§8.1.1, §8.7.1):
+# POR QUÉ FOMM (8.1.1, 8.7.1):
 #   - Único método que cubre reenactment sin reemplazar identidad
-#   - Introduce discontinuidades en expresiones y movimiento (§8.7.1)
+#   - Introduce discontinuidades en expresiones y movimiento (8.7.1)
 #   - Genera artefactos de deformación en zonas de alto movimiento
 #     (contorno labial, región periocular) — exactamente los detectables por U-Net
 #

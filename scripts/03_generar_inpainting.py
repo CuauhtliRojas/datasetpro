@@ -6,11 +6,11 @@
 # QUÉ HACE:
 #   Usa Stable Diffusion Inpainting para editar zonas específicas del rostro
 #   (boca, ojos, zona periocular) reemplazándolas con contenido sintético.
-#   Cubre la tipología "edición local" de §8.1.1.
+#   Cubre la tipología "edición local" de 8.1.1.
 #
-# POR QUÉ SD INPAINTING (§8.1.1, §8.7.1):
+# POR QUÉ SD INPAINTING (8.1.1, 8.7.1):
 #   - Edita regiones acotadas del rostro sin reemplazar la identidad completa
-#   - Introduce inconsistencias fotométricas locales detectables (§8.7.1)
+#   - Introduce inconsistencias fotométricas locales detectables (8.7.1)
 #   - Genera discontinuidades en bordes de la región editada
 #   - Complementa el reemplazo de rostro del script 02 con artefactos distintos
 #
@@ -45,13 +45,13 @@ DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
 # Formato: (x_inicio, y_inicio, x_fin, y_fin)
 # Se eligen aleatoriamente para variar la zona editada por imagen
 REGIONES_FACIALES = {
-    "boca":          (0.25, 0.60, 0.75, 0.85),   # Zona labial (§8.3.1)
+    "boca":          (0.25, 0.60, 0.75, 0.85),   # Zona labial (8.3.1)
     "ojo_izquierdo": (0.10, 0.25, 0.45, 0.50),   # Región periocular izq
     "ojo_derecho":   (0.55, 0.25, 0.90, 0.50),   # Región periocular der
     "nariz":         (0.30, 0.40, 0.70, 0.65),   # Zona nasal
 }
 
-# Prompts para guiar la generación — variedad para evitar sesgo de método (§8.8.2)
+# Prompts para guiar la generación — variedad para evitar sesgo de método (8.8.2)
 PROMPTS = [
     "realistic human face, natural skin texture, photorealistic",
     "person face with different features, photorealistic, 8k",

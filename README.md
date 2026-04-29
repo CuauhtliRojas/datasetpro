@@ -15,7 +15,7 @@ Pipeline automatizado para construir el dataset de entrenamiento del modelo
 `DualSegmentationModel` — una red neuronal de doble decoder que detecta y
 localiza manipulaciones faciales deepfake mediante segmentación semántica binaria.
 
-El pipeline cubre las **4 tipologías de deepfake** definidas en §8.1.1 del documento:
+El pipeline cubre las **4 tipologías de deepfake** definidas en 8.1.1 del documento:
 
 | Tipología | Script | Descripción |
 |-----------|--------|-------------|
@@ -42,7 +42,7 @@ El pipeline cubre las **4 tipologías de deepfake** definidas en §8.1.1 del doc
 > **Nota sobre el paso 02:** De 1,000 imágenes reales solo 109 generaron swaps exitosos.
 > InsightFace requiere rostros claramente visibles — los thumbnails de 128×128px de FFHQ
 > no cumplen este umbral en la mayoría de los casos. Las imágenes sin rostro detectable
-> se descartan para no contaminar el dataset (§8.9.1). En producción se usa FFHQ 256px+.
+> se descartan para no contaminar el dataset (8.9.1). En producción se usa FFHQ 256px+.
 
 ---
 
@@ -403,22 +403,22 @@ Ambas máscaras son PNG en escala de grises, tamaño 128×128px.
 
 | Decisión | Sección del documento |
 |----------|-----------------------|
-| FFHQ como fuente de imágenes reales | §8.8.1 — diversidad demográfica sin sesgo de actor |
-| Descartar imágenes sin rostro detectable | §8.9.1 — evitar contaminación con máscaras vacías |
-| 4 tipologías de deepfake | §8.1.1 — cobertura de reemplazo, edición, síntesis y recreación |
-| Dilatación morfológica en máscaras | §8.8.3 y §5 — acotamiento próximo con tolerancia de borde |
+| FFHQ como fuente de imágenes reales | 8.8.1 — diversidad demográfica sin sesgo de actor |
+| Descartar imágenes sin rostro detectable | 8.9.1 — evitar contaminación con máscaras vacías |
+| 4 tipologías de deepfake | 8.1.1 — cobertura de reemplazo, edición, síntesis y recreación |
+| Dilatación morfológica en máscaras | 8.8.3 y 5 — acotamiento próximo con tolerancia de borde |
 | Carpetas directas en lugar de HDF5 | train.py lee carpetas directamente; HDF5 innecesario para <50k imágenes |
-| Semilla fija SEED=42 | §8.8.3 — reproducibilidad entre dispositivos |
-| BCE + Dice como función de pérdida | §8.9.2 y §8.9.3 — desbalance región manipulada vs auténtica |
-| inswapper_128 para reemplazo | §8.7.1 — introduce bordes de mezcla y halos detectables |
-| SD Inpainting para edición local | §8.7.1 — inconsistencias fotométricas en zona editada |
-| SD text-to-image para síntesis | §8.1.1 — identidad completamente inventada sin referencia real |
+| Semilla fija SEED=42 | 8.8.3 — reproducibilidad entre dispositivos |
+| BCE + Dice como función de pérdida | 8.9.2 y 8.9.3 — desbalance región manipulada vs auténtica |
+| inswapper_128 para reemplazo | 8.7.1 — introduce bordes de mezcla y halos detectables |
+| SD Inpainting para edición local | 8.7.1 — inconsistencias fotométricas en zona editada |
+| SD text-to-image para síntesis | 8.1.1 — identidad completamente inventada sin referencia real |
 
 ---
 
 ## Escalar a 50,000 imágenes (producción)
 
-Para el dataset final descrito en §4.2:
+Para el dataset final descrito en 4.2:
 
 1. Descargar FFHQ en **256px o 1024px** — InsightFace detecta rostros en >90% de los casos
 2. Cambiar `TOTAL_IMAGENES = 12500` en `01_descargar_ffhq.py` (×4 tipologías = 50,000)

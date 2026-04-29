@@ -8,11 +8,11 @@
 #   - fake_mask:     región manipulada por el swap = blanco (255)
 #   - original_mask: región auténtica = blanco (255)
 #
-# MÉTODO (§8.5.4, §8.8.3):
+# MÉTODO (8.5.4, 8.8.3):
 #   1. Sustracción absoluta: absdiff(real, fake) píxel a píxel
 #   2. Umbralización: diferencia > THRESHOLD → región manipulada
 #   3. Dilatación morfológica: expansión para cubrir bordes de transición
-#      (produce el "acotamiento próximo" descrito en §8.8.3 y §5)
+#      (produce el "acotamiento próximo" descrito en 8.8.3 y 5)
 #   4. original_mask = inverso lógico de fake_mask
 #
 # NOTA DE RESOLUCIÓN:
@@ -41,17 +41,17 @@ DIRECTORIO_FAKE_MASK.mkdir(parents=True, exist_ok=True)
 DIRECTORIO_ORIG_MASK.mkdir(parents=True, exist_ok=True)
 
 # ── Parámetros — MODO PRUEBA (128px) ─────────────────────────────────────────
-UMBRAL      = 5    # Bajo porque el blending de inswapper es casi perfecto a 128px
-DILATACION  = 8    # Proporcional a la resolución (equivale a 18px en 256px)
-TAMANIO     = (128, 128)
+#UMBRAL      = 5    # Bajo porque el blending de inswapper es casi perfecto a 128px
+#DILATACION  = 8    # Proporcional a la resolución (equivale a 18px en 256px)
+#TAMANIO     = (128, 128)
 
 # ── Parámetros — MODO PRODUCCIÓN (descomentar al escalar a 256px+) ───────────
-# UMBRAL      = 15
-# DILATACION  = 18
-# TAMANIO     = (256, 256)
-# detector_haar = cv2.CascadeClassifier(
-#     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-# )
+UMBRAL      = 15
+DILATACION  = 18
+TAMANIO     = (256, 256)
+detector_haar = cv2.CascadeClassifier(
+     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
 
 def generar_par_mascaras(ruta_real, ruta_fake):
     """
@@ -82,7 +82,7 @@ def generar_par_mascaras(ruta_real, ruta_fake):
     # 2. Umbralización — solo diferencias mayores al umbral
     _, binario = cv2.threshold(diferencia_gris, UMBRAL, 255, cv2.THRESH_BINARY)
 
-    # 3. Dilatación morfológica — acotamiento próximo (§8.8.3)
+    # 3. Dilatación morfológica — acotamiento próximo (8.8.3)
     #    Expande la región detectada para cubrir los bordes de transición
     #    entre contenido real y sintético
     nucleo    = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (DILATACION, DILATACION))

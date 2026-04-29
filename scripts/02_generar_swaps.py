@@ -6,13 +6,13 @@
 # QUÉ HACE:
 #   Por cada imagen real en data/raw/real/, genera una imagen falsa donde
 #   el rostro original fue reemplazado por el rostro de otra persona del dataset.
-#   Esto cubre la tipología "reemplazo de rostro" definida en §8.1.1.
+#   Esto cubre la tipología "reemplazo de rostro" definida en 8.1.1.
 #
-# POR QUÉ inswapper_128 (§8.1.1, §8.7.1):
+# POR QUÉ inswapper_128 (8.1.1, 8.7.1):
 #   - Cubre reemplazo de identidad, tipología prioritaria del documento
 #   - Introduce artefactos forenses detectables: discontinuidades en bordes
-#     de mezcla, halos, inconsistencias fotométricas (§8.7.1)
-#   - Ejecutable localmente sin API externa (modo offline §8.11.1)
+#     de mezcla, halos, inconsistencias fotométricas (8.7.1)
+#   - Ejecutable localmente sin API externa (modo offline 8.11.1)
 #   - Automatizable por script sin interfaz gráfica
 #
 # ARTEFACTOS QUE INTRODUCE (señales que U-Net aprenderá a detectar):
@@ -79,7 +79,7 @@ app.prepare(ctx_id=0, det_size=(640, 640))
 
 # ── Cargar modelo de intercambio ──────────────────────────────────────────────
 # inswapper opera a 128x128 internamente.
-# Esta resolución limitada introduce artefactos de borde detectables (§8.7.1).
+# Esta resolución limitada introduce artefactos de borde detectables (8.7.1).
 print("      Cargando inswapper_128.onnx...")
 swapper = insightface.model_zoo.get_model(ruta_swapper)
 
@@ -97,7 +97,7 @@ if len(imagenes) == 0:
 #   Se DESCARTAN completamente. No se guarda nada en fake_swap/.
 #   Razón: guardar la imagen original como fake contaminaría el dataset
 #   porque la sustracción real-fake daría diferencia cero → máscara vacía
-#   → el modelo recibiría ruido sin señal forense (§8.9.1).
+#   → el modelo recibiría ruido sin señal forense (8.9.1).
 print(f"[3/4] Generando intercambios de rostro...")
 print(f"      Semilla fija: {SEMILLA} — reproducible en cualquier dispositivo")
 print(f"      Imágenes ya procesadas se saltan automáticamente\n")
@@ -147,7 +147,7 @@ for ruta_objetivo in tqdm(imagenes, desc="Intercambio de rostro", unit="img"):
 
     # Aplicar intercambio de rostro
     # paste_back=True: pega el rostro intercambiado sobre la imagen original
-    # con blending — esto introduce los artefactos de borde (§8.7.1)
+    # con blending — esto introduce los artefactos de borde (8.7.1)
     try:
         resultado = img_objetivo.copy()
         resultado = swapper.get(
