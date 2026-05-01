@@ -44,6 +44,7 @@ from datetime import datetime
 from tqdm import tqdm
 import insightface
 from insightface.app import FaceAnalysis
+from face_parsing_mask import FaceParsingMasker
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 DIRECTORIO_REAL     = Path("data/raw/real")
@@ -73,6 +74,12 @@ app.prepare(ctx_id=0, det_size=(640, 640))
 
 print("      Cargando inswapper_128.onnx...")
 swapper = insightface.model_zoo.get_model(ruta_swapper)
+
+print("      Cargando face-parsing para ROI facial...")
+face_masker = FaceParsingMasker(
+    checkpoint_path="models/face_parsing/79999_iter.pth",
+    include_hair=False,
+)
 
 # ── Cargar lista de imágenes ──────────────────────────────────────────────────
 imagenes = sorted(DIRECTORIO_REAL.glob("*.png"))
@@ -162,13 +169,23 @@ for ruta_objetivo in tqdm(imagenes, desc="Procesando", unit="img"):
         # dentro de la máscara blanca del rostro. Esto ocurre cuando algunos píxeles del rostro 
         # falso casualmente tienen el mismo color exacto que el rostro original, dando un falso 
         # negativo en la resta absoluta.
-        kernel = np.ones((5,5), np.uint8)
-        mascara_limpia = cv2.morphologyEx(mascara_binaria, cv2.MORPH_OPEN, kernel) # Elimina ruido externo
-        mascara_limpia = cv2.morphologyEx(mascara_limpia, cv2.MORPH_CLOSE, kernel) # Rellena huecos internos
-        
-        # Guardar resultados
+        kernel = np.ones((5, 5), np.uint8)
+        mascara_limpia = cv2.morphologyEx(mascara_binaria, cv2.MORPH_OPEN, kernel)
+        mascara_limpia = cv2.morphologyEx(mascara_limpia, cv2.MORPH_CLOSE, kernel)
+
+        # ROI facial generada con face-parsing sobre la imagen objetivo original.
+        # Esto evita que pequeños cambios fuera del rostro contaminen la máscara.
+        mascara_rostro = face_masker.predict_mask(img_objetivo)
+
+        # Intersección: solo conservar cambios dentro de la región facial.
+        mascara_final = cv2.bitwise_and(mascara_limpia, mascara_rostro)
+
+        # Limpieza final.
+        mascara_final = cv2.morphologyEx(mascara_final, cv2.MORPH_CLOSE, kernel)
+        mascara_final = cv2.dilate(mascara_final, kernel, iterations=1)
+
         cv2.imwrite(str(ruta_destino), resultado)
-        cv2.imwrite(str(ruta_mascara), mascara_limpia)
+        cv2.imwrite(str(ruta_mascara), mascara_final)
         # ──────────────────────────────────────────────────────────────────
 
         exitosos += 1
