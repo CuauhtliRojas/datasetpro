@@ -34,6 +34,7 @@
 #   Vuelve a ejecutar el script. Las imágenes ya procesadas se saltan.
 # =============================================================================
 
+import argparse
 import cv2
 import numpy as np
 import random
@@ -46,11 +47,21 @@ import insightface
 from insightface.app import FaceAnalysis
 from src.face_parsing_mask import FaceParsingMasker
 
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Paso 2 — Intercambio de rostros con InsightFace")
+    p.add_argument("--data_dir",   type=Path, default=Path("data"),   help="Directorio raíz de datos")
+    p.add_argument("--models_dir", type=Path, default=Path("models"), help="Directorio con pesos de modelos")
+    return p.parse_args()
+
+
+_args = _parse_args()
+
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL     = Path("data/raw/real")
-DIRECTORIO_FAKE     = Path("data/raw/fake_swap")
-DIRECTORIO_MASCARAS = Path("data/raw/masks_fake_swap") 
-ARCHIVO_LOG         = Path("data/raw/swap_log.json")
+DIRECTORIO_REAL     = _args.data_dir / "raw/real"
+DIRECTORIO_FAKE     = _args.data_dir / "raw/fake_swap"
+DIRECTORIO_MASCARAS = _args.data_dir / "raw/masks_fake_swap"
+ARCHIVO_LOG         = _args.data_dir / "raw/swap_log.json"
 
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
 DIRECTORIO_MASCARAS.mkdir(parents=True, exist_ok=True) # Crear directorio
@@ -77,7 +88,7 @@ swapper = insightface.model_zoo.get_model(ruta_swapper)
 
 print("      Cargando face-parsing para ROI facial...")
 face_masker = FaceParsingMasker(
-    checkpoint_path="models/face_parsing/79999_iter.pth",
+    checkpoint_path=_args.models_dir / "face_parsing/79999_iter.pth",
     include_hair=False,
 )
 

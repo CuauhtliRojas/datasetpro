@@ -23,6 +23,7 @@
 # SALIDA:   data/raw/fake_sintesis/ — rostros completamente sintéticos
 # =============================================================================
 
+import argparse
 import torch
 import cv2
 import numpy as np
@@ -34,10 +35,19 @@ from PIL import Image
 from tqdm import tqdm
 from diffusers import StableDiffusionPipeline
 
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Paso 4 — Síntesis completa de rostros con Stable Diffusion")
+    p.add_argument("--data_dir", type=Path, default=Path("data"), help="Directorio raíz de datos")
+    return p.parse_args()
+
+
+_args = _parse_args()
+
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL = Path("data/raw/real")
-DIRECTORIO_FAKE = Path("data/raw/fake_sintesis")
-ARCHIVO_LOG     = Path("data/raw/sintesis_log.json")
+DIRECTORIO_REAL = _args.data_dir / "raw/real"
+DIRECTORIO_FAKE = _args.data_dir / "raw/fake_sintesis"
+ARCHIVO_LOG     = _args.data_dir / "raw/sintesis_log.json"
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
 
 SEMILLA        = 42

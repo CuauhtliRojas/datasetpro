@@ -12,6 +12,7 @@ from torchvision import transforms
 
 ROOT = Path(__file__).resolve().parents[1]
 VENDOR_FACE_PARSING = ROOT / "vendor" / "face_parsing_pytorch"
+_DEFAULT_CHECKPOINT = ROOT / "models" / "face_parsing" / "79999_iter.pth"
 
 MODEL_FILE = VENDOR_FACE_PARSING / "model.py"
 RESNET_FILE = VENDOR_FACE_PARSING / "resnet.py"
@@ -44,11 +45,11 @@ class FaceParsingMasker:
 
     def __init__(
         self,
-        checkpoint_path: str | Path = "models/face_parsing/79999_iter.pth",
+        checkpoint_path: str | Path | None = None,
         device: str | None = None,
         include_hair: bool = False,
     ):
-        self.checkpoint_path = Path(checkpoint_path)
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path is not None else _DEFAULT_CHECKPOINT
         self.device = torch.device(
             device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         )

@@ -25,6 +25,7 @@
 #           data/raw/inpainting_log.json
 # =============================================================================
 
+import argparse
 import torch
 import cv2
 import numpy as np
@@ -36,11 +37,20 @@ from PIL import Image
 from tqdm import tqdm
 from diffusers import StableDiffusionInpaintPipeline
 
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Paso 3 — Inpainting facial con Stable Diffusion")
+    p.add_argument("--data_dir", type=Path, default=Path("data"), help="Directorio raíz de datos")
+    return p.parse_args()
+
+
+_args = _parse_args()
+
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL      = Path("data/raw/real")
-DIRECTORIO_FAKE      = Path("data/raw/fake_inpainting")
-DIRECTORIO_MASCARAS  = Path("data/raw/masks_inpainting") # NUEVO: Ruta de máscaras
-ARCHIVO_LOG          = Path("data/raw/inpainting_log.json")
+DIRECTORIO_REAL      = _args.data_dir / "raw/real"
+DIRECTORIO_FAKE      = _args.data_dir / "raw/fake_inpainting"
+DIRECTORIO_MASCARAS  = _args.data_dir / "raw/masks_inpainting"
+ARCHIVO_LOG          = _args.data_dir / "raw/inpainting_log.json"
 
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
 DIRECTORIO_MASCARAS.mkdir(parents=True, exist_ok=True)
