@@ -10,11 +10,26 @@ from PIL import Image
 from torchvision import transforms
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 VENDOR_FACE_PARSING = ROOT / "vendor" / "face_parsing_pytorch"
 
+MODEL_FILE = VENDOR_FACE_PARSING / "model.py"
+RESNET_FILE = VENDOR_FACE_PARSING / "resnet.py"
+
+if not MODEL_FILE.exists():
+    raise FileNotFoundError(
+        f"No se encontró model.py en {MODEL_FILE}. "
+        "Copia face-parsing.PyTorch/model.py a vendor/face_parsing_pytorch/model.py"
+    )
+
+if not RESNET_FILE.exists():
+    raise FileNotFoundError(
+        f"No se encontró resnet.py en {RESNET_FILE}. "
+        "Copia face-parsing.PyTorch/resnet.py a vendor/face_parsing_pytorch/resnet.py"
+    )
+
 if str(VENDOR_FACE_PARSING) not in sys.path:
-    sys.path.append(str(VENDOR_FACE_PARSING))
+    sys.path.insert(0, str(VENDOR_FACE_PARSING))
 
 from model import BiSeNet  # noqa: E402
 

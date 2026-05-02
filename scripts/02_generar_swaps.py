@@ -44,7 +44,7 @@ from datetime import datetime
 from tqdm import tqdm
 import insightface
 from insightface.app import FaceAnalysis
-from face_parsing_mask import FaceParsingMasker
+from src.face_parsing_mask import FaceParsingMasker
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 DIRECTORIO_REAL     = Path("data/raw/real")
