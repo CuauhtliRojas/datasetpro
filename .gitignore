@@ -1,8 +1,10 @@
 data/
+models/
 .venv/
 __pycache__/
 *.h5
 *.onnx
 *.pt
+*.pth
 .vscode/
 *.png

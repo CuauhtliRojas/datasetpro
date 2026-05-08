@@ -29,6 +29,7 @@
 #           data/raw/masks_reenactment/  — máscaras binarias de la deformación
 # =============================================================================
 
+import argparse
 import torch
 import numpy as np
 import cv2
@@ -38,11 +39,21 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Paso 5 — Reenactment facial con FOMM")
+    p.add_argument("--data_dir",   type=Path, default=Path("data"),   help="Directorio raíz de datos")
+    p.add_argument("--models_dir", type=Path, default=Path("models"), help="Directorio con pesos de modelos")
+    return p.parse_args()
+
+
+_args = _parse_args()
+
 # ── Configuración ─────────────────────────────────────────────────────────────
-DIRECTORIO_REAL     = Path("data/raw/real")
-DIRECTORIO_FAKE     = Path("data/raw/fake_reenactment")
-DIRECTORIO_MASCARAS = Path("data/raw/masks_reenactment") 
-ARCHIVO_LOG         = Path("data/raw/reenactment_log.json")
+DIRECTORIO_REAL     = _args.data_dir / "raw/real"
+DIRECTORIO_FAKE     = _args.data_dir / "raw/fake_reenactment"
+DIRECTORIO_MASCARAS = _args.data_dir / "raw/masks_reenactment"
+ARCHIVO_LOG         = _args.data_dir / "raw/reenactment_log.json"
 
 DIRECTORIO_FAKE.mkdir(parents=True, exist_ok=True)
 DIRECTORIO_MASCARAS.mkdir(parents=True, exist_ok=True) 
@@ -59,15 +70,16 @@ try:
     import yaml
 
     # Descargar checkpoint de FOMM entrenado en VoxCeleb
+    _fomm_cache = str(_args.models_dir / "fomm_cache")
     ruta_checkpoint = hf_hub_download(
         repo_id   = "snap-research/first-order-motion-model",
         filename  = "vox-cpk.pth.tar",
-        cache_dir = "data/raw/modelos_cache"
+        cache_dir = _fomm_cache,
     )
     ruta_config = hf_hub_download(
         repo_id   = "snap-research/first-order-motion-model",
         filename  = "vox-256.yaml",
-        cache_dir = "data/raw/modelos_cache"
+        cache_dir = _fomm_cache,
     )
 
     from demo import load_checkpoints, make_animation
